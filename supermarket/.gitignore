@@ -18,7 +18,7 @@ buildNumber.properties
 .settings/
 
 # Mac
-.DS_Store
+/.DS_Store
 
 #common
 log4j-application.log
