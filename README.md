@@ -2,6 +2,9 @@
 
 <b>An app to scan the product and calculate the total amount.</b>
 
+https://github.com/bins333/ShoppingCart/blob/master/supermarket/dist/supermarket-0.0.1-SNAPSHOT-jar-with-dependencies.jar
+
+
 #Usecase: Implement the code for a checkout system that handles pricing schemes such as “apples cost 50 pence, three apples cost £1.30.”
 Implement the code for a supermarket checkout that calculates the total price of a number of items. In a normal supermarket, things are identified using Stock Keeping Units, or SKUs. In our store, we’ll use individual letters of the alphabet (A, B, C, and so on). Our goods are priced individually. In addition, some items are multi-priced: buy ‘n’ of them, and they’ll cost you ‘y’ pence. For example, item ‘A’ might cost 50 pence individually, but this week we have a special offer: buy three ‘A’s and they’ll cost you £1.30. 
 
@@ -15,4 +18,8 @@ Our checkout accepts items in any order, so that if we scan a B, an A, and anoth
 
 The solution should allow for items to input at the command line, and allow for a final total to be calculated and for a running total after each item is ‘scanned’.
 
-Please use Java for the solution and place this onto a publicly accessible Github repository and let us know where it is.
+#How to run
+
+<b>Open CMD/Terminal: java -jar supermarket-0.0.1-SNAPSHOT-jar-with-dependencies.jar </b>
+
+Java, Maven
