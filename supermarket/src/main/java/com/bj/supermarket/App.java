@@ -51,8 +51,7 @@ public class App {
 			processProductScan(myScanner);			
 			// myScanner.close();
 		} catch (InvalidPurchaseException | InvalidProductDetailsException e) {
-			e.printStackTrace();
-			System.out.println(e.getMessage());
+			logger.error(e);
 		}
 		logger.info("Application execution end");
 	}

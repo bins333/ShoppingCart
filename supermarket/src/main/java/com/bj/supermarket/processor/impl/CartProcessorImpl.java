@@ -70,7 +70,7 @@ public class CartProcessorImpl implements ICartProcessor {
 		} catch (InvalidPurchaseException aException) {
 			// Not throwing here because we want to continue the loop to accept the correct
 			// input
-			logger.error(aException.getMessage());
+			logger.error(AppConstants.PRODUCT_SCAN_EXCEPTION + aException.getMessage(), aException);
 		}
 		calculatePaymentAmount(aManager);
 		//String myPaymentAmount = ICartProcessor.getTotalPaymentAmount(aManager);

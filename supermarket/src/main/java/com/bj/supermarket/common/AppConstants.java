@@ -18,4 +18,8 @@ public class AppConstants {
 
 	public static final String METHOD_ENTRY_MESSAGE = "Method execution started: ";
 	public static final String METHOD_EXIT_MESSAGE = "Method execution end: ";
+	
+	
+	public static final String PRODUCT_SCAN_EXCEPTION = "Exception while scanning product ";
+	public static final String PRODUCT_RULE_EXCEPTION = "Exception while parsing rule data ";
 }

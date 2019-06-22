@@ -82,9 +82,9 @@ public class PricingProcessorImpl implements IPricingProcessor {
 					// something wrong with input
 					throw new InvalidProductDetailsException(aPriceRule);
 				}
-			} catch (InvalidProductDetailsException aException) {
+			} catch (InvalidProductDetailsException aException) {				
 				// Not re-throwing here because we want to continue the loop to accept user input
-				logger.error("Exception " + aException.getMessage());
+				logger.error(AppConstants.PRODUCT_RULE_EXCEPTION + aException.getMessage(), aException);
 				
 			}
 		}
