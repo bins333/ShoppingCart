@@ -13,6 +13,8 @@ public class AppConstants {
 	public static final String SCAN_INFO_MESSAGE_MAIN = "Scan your product. Once complete type DONE and press enter";
 	public static final String PRODUCT_RULE_SUCESS_MESSAGE = "Product is added to store, please enter next product or type DONE if all are added.";
 	public static final String PRODUCT_RULE_FAILURE_MESSAGE = "Invalid user input, follow input rules for input string ";
+	public static final String PRODUCT_NOT_AVAILABLE_START_MESSAGE =  "Sorry, product ";
+	public static final String PRODUCT_NOT_AVAILABLE_END_MESSAGE =  " is not available. Scan available products!";
 
 	public static final String METHOD_ENTRY_MESSAGE = "Method execution started: ";
 	public static final String METHOD_EXIT_MESSAGE = "Method execution end: ";

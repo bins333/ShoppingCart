@@ -97,7 +97,10 @@ public class App {
 			if (myProduct.equalsIgnoreCase(DONE)) {
 				break;
 			} else {
-				myProcessor.scanProduct(myCartModelManager, myProduct);	
+				boolean isScanSucess = myProcessor.scanProduct(myCartModelManager, myProduct);	
+				if(!isScanSucess) {
+					System.out.println(AppConstants.PRODUCT_NOT_AVAILABLE_START_MESSAGE + myProduct + AppConstants.PRODUCT_NOT_AVAILABLE_END_MESSAGE);
+				}
 				String myPaymentAmount = ICartProcessor.getTotalPaymentAmount(myCartModelManager);
 				System.out.println(RUNNING_AMOUNT_DESC + myPaymentAmount + PRODUCT_SCAN_MESSAGE_PCOMPLETE);
 			}
