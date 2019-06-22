@@ -1,5 +1,6 @@
 package com.bj.supermarket.exception;
 
+import static com.bj.supermarket.common.AppConstants.PRODUCT_RULE_FAILURE_MESSAGE;
 
 public class InvalidProductDetailsException extends Exception {
 
@@ -8,7 +9,7 @@ public class InvalidProductDetailsException extends Exception {
 
 	public InvalidProductDetailsException(String errorMessage) {
 		
-		super("Invalid user input, follow input rules for input string "+errorMessage);
+		super(PRODUCT_RULE_FAILURE_MESSAGE+errorMessage);
 	}
 
 }

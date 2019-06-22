@@ -14,6 +14,7 @@ import com.bj.supermarket.processor.IPricingProcessor;
 
 /**
  * Class to process pricing rules and building product objects.
+ * 
  * @author bins
  *
  */
@@ -21,22 +22,21 @@ import com.bj.supermarket.processor.IPricingProcessor;
 public class PricingProcessorImpl implements IPricingProcessor {
 
 	final static Logger logger = Logger.getLogger(PricingProcessorImpl.class);
+	// Keep as volatile in case of double lock.
+	private static IPricingProcessor myPricingProcessor = null;
 	
 	private static Map<String, Product> productDetails = new HashMap<>();
-	private static Map<String, OfferProduct> offerProductDetails = new HashMap<>();
-
-	// Keep as volatile in case of double lock.
-	private static PricingProcessorImpl myPricingProcessor = null;
-
+	
 	private PricingProcessorImpl() {
 
 	}
 
 	/**
 	 * Get singleton object
+	 * 
 	 * @return
 	 */
-	public static PricingProcessorImpl getInstance() {
+	public static IPricingProcessor getInstance() {
 		if (myPricingProcessor == null) {
 			synchronized (PricingProcessorImpl.class) {
 				// Can have a double lock over here.
@@ -52,22 +52,30 @@ public class PricingProcessorImpl implements IPricingProcessor {
 	 */
 	@Override
 	public boolean processPricingRule(String aPriceRule) throws InvalidProductDetailsException {
-		
-		logger.info(AppConstants.METHOD_ENTRY_MESSAGE + "processPricingRule [" + aPriceRule+ "]");
-		boolean isValid = false;
+
+		logger.info(AppConstants.METHOD_ENTRY_MESSAGE + "processPricingRule [" + aPriceRule + "]");
+		boolean isRuleValid = false;
+		boolean isOfferRuleValid = false;
 		if (aPriceRule != null && !aPriceRule.isEmpty()) {
 			// Split for | character
 			String[] myInputStringArray = aPriceRule.trim().toUpperCase()
 					.split(AppConstants.REGX_RULE_HIPHEN_DELIMITER);
 			try {
-				isValid = validatePricingRule(myInputStringArray);
-				if (isValid) {
+				isRuleValid = validateProductRule(myInputStringArray);
+				if (isRuleValid) {					
 					// create product object since validation is success.
 					Product myProduct = new Product();
 					String myProductId = myInputStringArray[0].trim();
 					myProduct.setProductId(myProductId);
-					myProduct.setProductPrice(NumberUtils.toDouble(myInputStringArray[1]));
-					// populate product map
+					myProduct.setProductPrice(NumberUtils.toDouble(myInputStringArray[1]));					
+					isOfferRuleValid = validateOfferRule(myInputStringArray);
+					if (isOfferRuleValid) {
+						OfferProduct myOfferProduct = new OfferProduct();
+						String[] myOfferArray = myInputStringArray[2].trim().split(AppConstants.REGX_RULE_FOR_STRING_PARSE_DELIMITER);
+						myOfferProduct.setMinimumOfferUnits(NumberUtils.toInt(myOfferArray[0].trim()));
+						myOfferProduct.setOfferPrice(NumberUtils.toDouble(myOfferArray[1].trim()));
+						myProduct.setOfferProduct(myOfferProduct);
+					}
 					getProductDetails().put(myProductId, myProduct);
 					
 				} else {
@@ -75,31 +83,30 @@ public class PricingProcessorImpl implements IPricingProcessor {
 					throw new InvalidProductDetailsException(aPriceRule);
 				}
 			} catch (InvalidProductDetailsException aException) {
-				// Not re-throwing here because we want to continue the loop to accept the correct
-				// input
-				logger.error("Exception "+ aException);
-				System.out.println(aException.getMessage());
+				// Not re-throwing here because we want to continue the loop to accept user input
+				logger.error("Exception " + aException.getMessage());
+				
 			}
 		}
-		logger.info(AppConstants.METHOD_EXIT_MESSAGE + "processPricingRule [" + aPriceRule+ "]");
-		return isValid;
+		logger.info(AppConstants.METHOD_EXIT_MESSAGE + "processPricingRule [" + aPriceRule + "]");
+		return isRuleValid;
 	}
 
 	/**
-	 * Validate input string is valid to map against product object. 
+	 * Validate input string is valid
 	 * @param aInputStringArray
 	 * @return
 	 */
-	private boolean validatePricingRule(String[] aInputStringArray) {
-		logger.info(AppConstants.METHOD_ENTRY_MESSAGE + "validatePricingRule");
+	private boolean validateProductRule(String[] aInputStringArray) {
+		logger.info(AppConstants.METHOD_ENTRY_MESSAGE + "validateProductRule");
 		boolean isValid = false;
-		// Check first and second entry are numbers with at least two objects in array
-		if (aInputStringArray.length > 1 && NumberUtils.isParsable(aInputStringArray[1].trim())) {
+		// check only if array has either 2 or 3 entry
+		if (aInputStringArray.length > 1 && aInputStringArray.length < 4
+				&& NumberUtils.isParsable(aInputStringArray[1].trim())) {
 			// for offer string it will have at least 3 object
-			if (aInputStringArray.length >= 3) {
+			if (aInputStringArray.length > 2) {
 				// when find third object, check the syntax for offer object
-				if (isOfferSyntaxValid(aInputStringArray)) {
-
+				if (validateOfferRule(aInputStringArray)) {
 					isValid = true;
 				} else {
 					// set false since something wrong with offer object
@@ -109,22 +116,18 @@ public class PricingProcessorImpl implements IPricingProcessor {
 				// set two object when string has valid price and id.
 				isValid = true;
 			}
-
 		}
-		logger.info(AppConstants.METHOD_EXIT_MESSAGE + "validatePricingRule");
+		logger.info(AppConstants.METHOD_EXIT_MESSAGE + "validateProductRule");
 		return isValid;
-
 	}
 
 	/**
-	 * Validate offer input string is valid to create {@link OfferProduct}.If valid
-	 * offer object will be created and added to offer map
-	 * 
-	 * @param aOfferArray
+	 * Validate offer string is valid
+	 * @param aInputStringArray
 	 * @return
 	 */
-	private boolean isOfferSyntaxValid(String[] aInputStringArray) {
-		logger.info(AppConstants.METHOD_ENTRY_MESSAGE + "isOfferSyntaxValid");
+	private boolean validateOfferRule(String[] aInputStringArray) {
+		logger.info(AppConstants.METHOD_ENTRY_MESSAGE + "validateOfferRule");
 		boolean isValid = false;
 		// valid offer string has size of 3
 		if (aInputStringArray.length == 3) {
@@ -133,17 +136,10 @@ public class PricingProcessorImpl implements IPricingProcessor {
 					.split(AppConstants.REGX_RULE_FOR_STRING_PARSE_DELIMITER);
 			if (myOfferArray.length == 2 && NumberUtils.isParsable(myOfferArray[0].trim())
 					&& NumberUtils.isParsable(myOfferArray[1].trim())) {
-				// set true only when it can be converted to a string
-				OfferProduct myOfferProduct = new OfferProduct();
-				String myProductId = aInputStringArray[0].trim();
-				myOfferProduct.setProductId(myProductId);
-				myOfferProduct.setMinimumOfferUnits(NumberUtils.toInt(myOfferArray[0].trim()));
-				myOfferProduct.setProductPrice(NumberUtils.toDouble(myOfferArray[1].trim()));
-				getOfferProductDetails().put(myProductId, myOfferProduct);
 				isValid = true;
 			}
 		}
-		logger.info(AppConstants.METHOD_EXIT_MESSAGE + "isOfferSyntaxValid" );
+		logger.info(AppConstants.METHOD_EXIT_MESSAGE + "validateOfferRule");
 		return isValid;
 	}
 
@@ -156,15 +152,6 @@ public class PricingProcessorImpl implements IPricingProcessor {
 		return productDetails;
 	}
 
+
 	
-	/**
-	 * Map which holds offer details
-	 * @return
-	 */
-	@Override
-	public Map<String, OfferProduct> getOfferProductDetails() {
-
-		return offerProductDetails;
-	}
-
 }

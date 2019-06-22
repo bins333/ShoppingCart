@@ -8,8 +8,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.bj.supermarket.exception.InvalidPurchaseException;
+import com.bj.supermarket.manager.CartModelManager;
 import com.bj.supermarket.model.OfferProduct;
 import com.bj.supermarket.model.Product;
+import com.bj.supermarket.processor.ICartProcessor;
 import com.bj.supermarket.processor.impl.CartProcessorImpl;
 import com.bj.supermarket.processor.impl.PricingProcessorImpl;
 import com.bj.supermarket.util.AppUtil;
@@ -18,37 +20,35 @@ import junit.framework.TestCase;
 
 public class CartProcessorImplTest extends TestCase {
 
-	CartProcessorImpl myCartProcessor = null;
+	ICartProcessor myCartProcessor = null;
+	
+	CartModelManager myManager = null;
 
 	static Map<String, Product> myProductMap = null;
-	static Map<String, OfferProduct> myOfferMap = null;
 
 	static {
+		
 		myProductMap = new HashMap<>();
-		myProductMap.put("A", new Product("A", 50));
-		myProductMap.put("B", new Product("B", 30));
-		myProductMap.put("C", new Product("C", 20));
-		myProductMap.put("D", new Product("D", 15));
+		myProductMap.put("A", populateProductObject("A", 50, populatefferProductObject(3, 130)));
+		myProductMap.put("B", populateProductObject("B", 30, populatefferProductObject(2, 45)));
+		myProductMap.put("C", populateProductObject("C", 20,null));
+		myProductMap.put("D", populateProductObject("D", 15, null));
 	}
 
-	static {
-		myOfferMap = new HashMap<>();
-		myOfferMap.put("A", new OfferProduct("A", 130, 3));
-		myOfferMap.put("B", new OfferProduct("B", 45, 2));
-	}
+	
 
 	@Before
 	public void setUp() throws Exception {
 		super.setUp();
 		myCartProcessor = CartProcessorImpl.getInstance();
+		myManager = new CartModelManager();
 		PricingProcessorImpl.getInstance().getProductDetails().clear();
-		PricingProcessorImpl.getInstance().getOfferProductDetails().clear();
 		PricingProcessorImpl.getInstance().getProductDetails().putAll(myProductMap);
-		PricingProcessorImpl.getInstance().getOfferProductDetails().putAll(myOfferMap);
 	}
 
 	@After
 	public void tearDown() throws Exception {
+		myManager = null;
 		myCartProcessor = null;
 		super.tearDown();
 	}
@@ -56,7 +56,7 @@ public class CartProcessorImplTest extends TestCase {
 	@Test
 	public void testProductWhichIsNotAvailable() {
 		try {
-			assertEquals(false, myCartProcessor.scanProduct("X"));
+			assertEquals(false, myCartProcessor.scanProduct(myManager, "X"));
 		} catch (InvalidPurchaseException e) {
 			fail();
 			e.printStackTrace();
@@ -66,7 +66,8 @@ public class CartProcessorImplTest extends TestCase {
 	@Test
 	public void testProductWhichIsAvailable() {
 		try {
-			assertEquals(true, myCartProcessor.scanProduct("A"));
+			
+			assertEquals(true, myCartProcessor.scanProduct(myManager, "A"));
 		} catch (InvalidPurchaseException e) {
 			fail();
 			e.printStackTrace();
@@ -77,11 +78,11 @@ public class CartProcessorImplTest extends TestCase {
 	public void testAddTwoProducts() {
 		try {
 
-			myCartProcessor.getCartDetails().clear();
-			myCartProcessor.scanProduct("A");
-			myCartProcessor.scanProduct("B");
+			
+			myCartProcessor.scanProduct(myManager, "A");
+			myCartProcessor.scanProduct(myManager, "B");
 
-			assertEquals(getExpectedAmount(0.80), myCartProcessor.getCheckOutDisplayAmount());
+			assertEquals(getExpectedAmount(0.80), ICartProcessor.getTotalPaymentAmount(myManager));
 		} catch (Exception e) {
 			e.printStackTrace();
 
@@ -94,13 +95,13 @@ public class CartProcessorImplTest extends TestCase {
 	public void testAddAllProducts() {
 		try {
 
-			myCartProcessor.getCartDetails().clear();
-			myCartProcessor.scanProduct("A");
-			myCartProcessor.scanProduct("B");
-			myCartProcessor.scanProduct("C");
-			myCartProcessor.scanProduct("D");
+			
+			myCartProcessor.scanProduct(myManager, "A");
+			myCartProcessor.scanProduct(myManager, "B");
+			myCartProcessor.scanProduct(myManager, "C");
+			myCartProcessor.scanProduct(myManager, "D");
 
-			assertEquals(getExpectedAmount(1.15), myCartProcessor.getCheckOutDisplayAmount());
+			assertEquals(getExpectedAmount(1.15), ICartProcessor.getTotalPaymentAmount(myManager));
 		} catch (InvalidPurchaseException e) {
 			e.printStackTrace();
 			fail();
@@ -111,16 +112,16 @@ public class CartProcessorImplTest extends TestCase {
 	public void testAddAllProductsWithFourA() {
 		try {
 
-			myCartProcessor.getCartDetails().clear();
-			myCartProcessor.scanProduct("A");
-			myCartProcessor.scanProduct("B");
-			myCartProcessor.scanProduct("A");
-			myCartProcessor.scanProduct("C");
-			myCartProcessor.scanProduct("D");
-			myCartProcessor.scanProduct("A");
-			myCartProcessor.scanProduct("A");
+			
+			myCartProcessor.scanProduct(myManager, "A");
+			myCartProcessor.scanProduct(myManager, "B");
+			myCartProcessor.scanProduct(myManager, "A");
+			myCartProcessor.scanProduct(myManager, "C");
+			myCartProcessor.scanProduct(myManager, "D");
+			myCartProcessor.scanProduct(myManager, "A");
+			myCartProcessor.scanProduct(myManager, "A");
 
-			assertEquals(getExpectedAmount(2.45), myCartProcessor.getCheckOutDisplayAmount());
+			assertEquals(getExpectedAmount(2.45), ICartProcessor.getTotalPaymentAmount(myManager));
 		} catch (InvalidPurchaseException e) {
 			e.printStackTrace();
 			fail();
@@ -131,11 +132,11 @@ public class CartProcessorImplTest extends TestCase {
 	public void testBAB() {
 		try {
 
-			myCartProcessor.getCartDetails().clear();
-			myCartProcessor.scanProduct("B");
-			myCartProcessor.scanProduct("A");
-			myCartProcessor.scanProduct("B");
-			assertEquals(getExpectedAmount(0.95), myCartProcessor.getCheckOutDisplayAmount());
+			
+			myCartProcessor.scanProduct(myManager, "B");
+			myCartProcessor.scanProduct(myManager, "A");
+			myCartProcessor.scanProduct(myManager, "B");
+			assertEquals(getExpectedAmount(0.95), ICartProcessor.getTotalPaymentAmount(myManager));
 		} catch (InvalidPurchaseException e) {
 			e.printStackTrace();
 			fail();
@@ -146,11 +147,11 @@ public class CartProcessorImplTest extends TestCase {
 	public void testAAA() {
 		try {
 
-			myCartProcessor.getCartDetails().clear();
-			myCartProcessor.scanProduct("A");
-			myCartProcessor.scanProduct("A");
-			myCartProcessor.scanProduct("A");
-			assertEquals(getExpectedAmount(1.30), myCartProcessor.getCheckOutDisplayAmount());
+			
+			myCartProcessor.scanProduct(myManager, "A");
+			myCartProcessor.scanProduct(myManager, "A");
+			myCartProcessor.scanProduct(myManager, "A");
+			assertEquals(getExpectedAmount(1.30), ICartProcessor.getTotalPaymentAmount(myManager));
 		} catch (InvalidPurchaseException e) {
 			e.printStackTrace();
 			fail();
@@ -161,12 +162,12 @@ public class CartProcessorImplTest extends TestCase {
 	public void testAAAA() {
 		try {
 
-			myCartProcessor.getCartDetails().clear();
-			myCartProcessor.scanProduct("A");
-			myCartProcessor.scanProduct("A");
-			myCartProcessor.scanProduct("A");
-			myCartProcessor.scanProduct("A");
-			assertEquals(getExpectedAmount(1.80), myCartProcessor.getCheckOutDisplayAmount());
+			
+			myCartProcessor.scanProduct(myManager, "A");
+			myCartProcessor.scanProduct(myManager, "A");
+			myCartProcessor.scanProduct(myManager, "A");
+			myCartProcessor.scanProduct(myManager, "A");
+			assertEquals(getExpectedAmount(1.80), ICartProcessor.getTotalPaymentAmount(myManager));
 		} catch (InvalidPurchaseException e) {
 			e.printStackTrace();
 			fail();
@@ -177,10 +178,10 @@ public class CartProcessorImplTest extends TestCase {
 	public void testCD() {
 		try {
 
-			myCartProcessor.getCartDetails().clear();
-			myCartProcessor.scanProduct("C");
-			myCartProcessor.scanProduct("D");
-			assertEquals(getExpectedAmount(0.35), myCartProcessor.getCheckOutDisplayAmount());
+			
+			myCartProcessor.scanProduct(myManager, "C");
+			myCartProcessor.scanProduct(myManager, "D");
+			assertEquals(getExpectedAmount(0.35), ICartProcessor.getTotalPaymentAmount(myManager));
 		} catch (InvalidPurchaseException e) {
 			e.printStackTrace();
 			fail();
@@ -190,9 +191,9 @@ public class CartProcessorImplTest extends TestCase {
 	@Test
 	public void testX() {
 		try {
-			myCartProcessor.getCartDetails().clear();
-			myCartProcessor.scanProduct("X");
-			assertEquals(getExpectedAmount(0.0), myCartProcessor.getCheckOutDisplayAmount());
+			
+			myCartProcessor.scanProduct(myManager, "X");
+			assertEquals(getExpectedAmount(0.0), ICartProcessor.getTotalPaymentAmount(myManager));
 		} catch (InvalidPurchaseException e) {
 			e.printStackTrace();
 			fail();
@@ -202,11 +203,11 @@ public class CartProcessorImplTest extends TestCase {
 	@Test
 	public void testAXB() {
 		try {
-			myCartProcessor.getCartDetails().clear();
-			myCartProcessor.scanProduct("A");
-			myCartProcessor.scanProduct("X");
-			myCartProcessor.scanProduct("B");
-			assertEquals(getExpectedAmount(0.8), myCartProcessor.getCheckOutDisplayAmount());
+			
+			myCartProcessor.scanProduct(myManager, "A");
+			myCartProcessor.scanProduct(myManager, "X");
+			myCartProcessor.scanProduct(myManager, "B");
+			assertEquals(getExpectedAmount(0.8), ICartProcessor.getTotalPaymentAmount(myManager));
 		} catch (InvalidPurchaseException e) {
 			e.printStackTrace();
 			fail();
@@ -216,14 +217,14 @@ public class CartProcessorImplTest extends TestCase {
 	@Test
 	public void testXXABXA() {
 		try {
-			myCartProcessor.getCartDetails().clear();
-			myCartProcessor.scanProduct("X");
-			myCartProcessor.scanProduct("X");
-			myCartProcessor.scanProduct("A");
-			myCartProcessor.scanProduct("B");
-			myCartProcessor.scanProduct("X");
-			myCartProcessor.scanProduct("A");
-			assertEquals(getExpectedAmount(1.3), myCartProcessor.getCheckOutDisplayAmount());
+			
+			myCartProcessor.scanProduct(myManager, "X");
+			myCartProcessor.scanProduct(myManager, "X");
+			myCartProcessor.scanProduct(myManager, "A");
+			myCartProcessor.scanProduct(myManager, "B");
+			myCartProcessor.scanProduct(myManager, "X");
+			myCartProcessor.scanProduct(myManager, "A");
+			assertEquals(getExpectedAmount(1.3), ICartProcessor.getTotalPaymentAmount(myManager));
 		} catch (InvalidPurchaseException e) {
 			e.printStackTrace();
 			fail();
@@ -233,11 +234,11 @@ public class CartProcessorImplTest extends TestCase {
 	@Test
 	public void testABX() {
 		try {
-			myCartProcessor.getCartDetails().clear();
-			myCartProcessor.scanProduct("A");
-			myCartProcessor.scanProduct("B");
-			myCartProcessor.scanProduct("X");
-			assertEquals(getExpectedAmount(0.8), myCartProcessor.getCheckOutDisplayAmount());
+			
+			myCartProcessor.scanProduct(myManager, "A");
+			myCartProcessor.scanProduct(myManager, "B");
+			myCartProcessor.scanProduct(myManager, "X");
+			assertEquals(getExpectedAmount(0.8), ICartProcessor.getTotalPaymentAmount(myManager));
 		} catch (InvalidPurchaseException e) {
 			e.printStackTrace();
 			fail();
@@ -247,11 +248,11 @@ public class CartProcessorImplTest extends TestCase {
 	@Test
 	public void testXAB() {
 		try {
-			myCartProcessor.getCartDetails().clear();
-			myCartProcessor.scanProduct("A");
-			myCartProcessor.scanProduct("B");
-			myCartProcessor.scanProduct("X");
-			assertEquals(getExpectedAmount(0.8), myCartProcessor.getCheckOutDisplayAmount());
+			
+			myCartProcessor.scanProduct(myManager, "A");
+			myCartProcessor.scanProduct(myManager, "B");
+			myCartProcessor.scanProduct(myManager, "X");
+			assertEquals(getExpectedAmount(0.8), ICartProcessor.getTotalPaymentAmount(myManager));
 		} catch (InvalidPurchaseException e) {
 			e.printStackTrace();
 			fail();
@@ -261,9 +262,9 @@ public class CartProcessorImplTest extends TestCase {
 	@Test
 	public void testNull() {
 		try {
-			myCartProcessor.getCartDetails().clear();
-			myCartProcessor.scanProduct(null);
-			assertEquals(getExpectedAmount(0.0), myCartProcessor.getCheckOutDisplayAmount());
+			
+			myCartProcessor.scanProduct(myManager, null);
+			assertEquals(getExpectedAmount(0.0), ICartProcessor.getTotalPaymentAmount(myManager));
 		} catch (InvalidPurchaseException e) {
 			e.printStackTrace();
 			fail();
@@ -273,9 +274,9 @@ public class CartProcessorImplTest extends TestCase {
 	@Test
 	public void testEmptyString() {
 		try {
-			myCartProcessor.getCartDetails().clear();
-			myCartProcessor.scanProduct("");
-			assertEquals(getExpectedAmount(0.0), myCartProcessor.getCheckOutDisplayAmount());
+			
+			myCartProcessor.scanProduct(myManager, "");
+			assertEquals(getExpectedAmount(0.0), ICartProcessor.getTotalPaymentAmount(myManager));
 		} catch (InvalidPurchaseException e) {
 			e.printStackTrace();
 			fail();
@@ -285,5 +286,23 @@ public class CartProcessorImplTest extends TestCase {
 
 	private String getExpectedAmount(double aAmount) {
 		return AppUtil.getCurrencySymbol() + String.valueOf(aAmount);
+	}
+	
+	
+	private static Product populateProductObject(String id, double price, OfferProduct aOfferProduct) {
+		Product myProduct = new Product();
+		myProduct.setProductId(id);
+		myProduct.setProductPrice(price);
+		myProduct.setOfferProduct(aOfferProduct);
+		return myProduct;
+	}
+	
+	private static OfferProduct populatefferProductObject(int units, double offerPrice) {		
+		OfferProduct myProduct = new OfferProduct();
+		myProduct.setMinimumOfferUnits(units);
+		myProduct.setOfferPrice(offerPrice);
+		
+		return myProduct;
+		
 	}
 }

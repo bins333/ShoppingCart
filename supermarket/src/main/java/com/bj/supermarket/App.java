@@ -1,8 +1,6 @@
 package com.bj.supermarket;
 
-import static com.bj.supermarket.common.AppConstants.DONE;
-import static com.bj.supermarket.common.AppConstants.SCAN_INFO_MESSAGE;
-import static com.bj.supermarket.common.AppConstants.TOTAL_AMOUNT_DESC;
+import static com.bj.supermarket.common.AppConstants.*;
 
 import java.util.Scanner;
 
@@ -11,6 +9,7 @@ import org.apache.log4j.Logger;
 import com.bj.supermarket.common.AppConstants;
 import com.bj.supermarket.exception.InvalidProductDetailsException;
 import com.bj.supermarket.exception.InvalidPurchaseException;
+import com.bj.supermarket.manager.CartModelManager;
 import com.bj.supermarket.processor.ICartProcessor;
 import com.bj.supermarket.processor.IPricingProcessor;
 import com.bj.supermarket.processor.impl.CartProcessorImpl;
@@ -41,22 +40,21 @@ public class App {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		logger.info("Application execution started");
 		// try- resource since we need scanner object to be available for product scan
-		// also
+		
 		try (Scanner myScanner = new Scanner(System.in)) {
-			logger.info("Application execution started");
+			
 			displayPricingRuleInfoMessage();
 			processPricingRule(myScanner);
 			displayProductScanInfoMessage();
-			processProductScan(myScanner);
-			displayCheckoutAmount();
+			processProductScan(myScanner);			
 			// myScanner.close();
-			logger.info("Application execution end");
 		} catch (InvalidPurchaseException | InvalidProductDetailsException e) {
 			e.printStackTrace();
 			System.out.println(e.getMessage());
 		}
-
+		logger.info("Application execution end");
 	}
 
 	/**
@@ -74,8 +72,10 @@ public class App {
 				break;
 			} else {
 				boolean isProductAdded = myProcessor.processPricingRule(myProductDetails);
-				if(isProductAdded) {
+				if (isProductAdded) {
 					System.out.println(AppConstants.PRODUCT_RULE_SUCESS_MESSAGE);
+				} else {
+					System.out.println(PRODUCT_RULE_FAILURE_MESSAGE + myProductDetails);
 				}
 			}
 		}
@@ -88,21 +88,23 @@ public class App {
 	 * @param aScanner
 	 * @throws InvalidPurchaseException
 	 */
-	private static void processProductScan(Scanner aScanner) throws InvalidPurchaseException {
+	private static CartModelManager processProductScan(Scanner aScanner) throws InvalidPurchaseException {
 		// myScanner = new Scanner(System.in);
 		ICartProcessor myProcessor = CartProcessorImpl.getInstance();
+		CartModelManager myCartModelManager = new CartModelManager();
 		while (true) {
 			String myProduct = aScanner.next();
 			if (myProduct.equalsIgnoreCase(DONE)) {
 				break;
 			} else {
-				boolean isProductScanned = myProcessor.scanProduct(myProduct);
-				if(isProductScanned) {
-				System.out.println("Bill Amount :" + ((CartProcessorImpl) myProcessor).getCheckOutDisplayAmount()
-						+ " [ enter DONE to complete scanning! ] ");
-				}
+				myProcessor.scanProduct(myCartModelManager, myProduct);	
+				String myPaymentAmount = ICartProcessor.getTotalPaymentAmount(myCartModelManager);
+				System.out.println(RUNNING_AMOUNT_DESC + myPaymentAmount + PRODUCT_SCAN_MESSAGE_PCOMPLETE);
 			}
-		}
+			
+		}		
+		System.out.println(TOTAL_AMOUNT_DESC + ICartProcessor.getTotalPaymentAmount(myCartModelManager));
+		return myCartModelManager;
 	}
 
 	/**
@@ -124,11 +126,9 @@ public class App {
 	 * Info message for product scan
 	 */
 	private static void displayProductScanInfoMessage() {
-		System.out.println(SCAN_INFO_MESSAGE);
+		System.out.println(SCAN_INFO_MESSAGE_MAIN);
 	}
 
-	private static void displayCheckoutAmount() {
-		System.out.println(TOTAL_AMOUNT_DESC + CartProcessorImpl.getInstance().getCheckOutDisplayAmount());
-	}
+	
 
 }

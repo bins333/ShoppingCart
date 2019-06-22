@@ -7,20 +7,20 @@ import org.hamcrest.collection.IsMapContaining;
 import org.junit.Test;
 
 import com.bj.supermarket.exception.InvalidProductDetailsException;
-import com.bj.supermarket.model.OfferProduct;
-import com.bj.supermarket.model.Product;
+import com.bj.supermarket.processor.IPricingProcessor;
 import com.bj.supermarket.processor.impl.PricingProcessorImpl;
 
 import junit.framework.TestCase;
 
 public class PricingProcessorImplTest extends TestCase {
 
-	PricingProcessorImpl myRuleProcessor = null;
+	IPricingProcessor myRuleProcessor = null;
 
 	@Override
-	protected void setUp() throws Exception {
+	protected void setUp() throws Exception {		
 		super.setUp();
 		myRuleProcessor = PricingProcessorImpl.getInstance();
+		myRuleProcessor.getProductDetails().clear();
 	}
 
 	@Override
@@ -68,12 +68,10 @@ public class PricingProcessorImplTest extends TestCase {
 	@Test
 	public void testValidPricingRuleInMap() {
 		try {
-			String myRule = "A | 50 | 2 for 130";
-			OfferProduct myOfferProduct =  new OfferProduct("A", 130, 2);			
-			Product myProduct =  new Product("A", 50);
+			String myRule = "U | 50 | 2 for 130";			
 			assertTrue(myRuleProcessor.processPricingRule(myRule));
-			assertTrue(myRuleProcessor.getOfferProductDetails().get("A").equals(myOfferProduct));
-			assertTrue(myRuleProcessor.getProductDetails().get("A").equals(myProduct));
+			assertNotNull(myRuleProcessor.getProductDetails().get("U"));
+			assertNotNull(myRuleProcessor.getProductDetails().get("U").getOfferProduct());
 		} catch (InvalidProductDetailsException aException) {
 			fail();
 			aException.getMessage();
@@ -83,14 +81,12 @@ public class PricingProcessorImplTest extends TestCase {
 	@Test
 	public void testValidPricingRuleInMapWithMultipleObject() {
 		try {
-			myRuleProcessor.getOfferProductDetails().clear();
+			
 			String myRuleA1 = "A | 40 | 2 for 120";
 			String myRuleA2 = "A | 50 | 2 for 130";
 			String myRuleB = "B | 30 | 2 for 40";
 			String myRuleC = "C | 20";
-			String myRuleD = "D | 15 ";
-			OfferProduct myOfferProduct =  new OfferProduct("A", 130, 2);			
-			Product myProduct =  new Product("A", 50);
+			String myRuleD = "D | 15 ";			
 			myRuleProcessor.processPricingRule(myRuleA1);
 			myRuleProcessor.processPricingRule(myRuleA2);
 			myRuleProcessor.processPricingRule(myRuleB);
@@ -99,17 +95,10 @@ public class PricingProcessorImplTest extends TestCase {
 			
 			// Test size
 			assertThat(myRuleProcessor.getProductDetails().size(), is(4));
-	        assertThat(myRuleProcessor.getOfferProductDetails().size(), is(2));
+	        assertThat(myRuleProcessor.getProductDetails().get("A").getOfferProduct().getOfferPrice(), is(130.0));
 	        
-
-	        // Test map entry
-	        assertThat(myRuleProcessor.getProductDetails(), IsMapContaining.hasEntry("A", myProduct));
-	        assertThat(myRuleProcessor.getOfferProductDetails(), IsMapContaining.hasEntry("A", myOfferProduct));
-
-	       
-	        //4. Test map key
+	        //Test map key
 	        assertThat(myRuleProcessor.getProductDetails(), IsMapContaining.hasKey("D"));
-	        assertThat(myRuleProcessor.getOfferProductDetails(), IsMapContaining.hasKey("B"));
 	        
 	        
 		} catch (InvalidProductDetailsException aException) {
@@ -195,6 +184,6 @@ public class PricingProcessorImplTest extends TestCase {
 			aException.getMessage();
 		}
 	}
-	
+
 
 }

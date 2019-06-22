@@ -1,6 +1,5 @@
 package com.bj.supermarket.processor.impl;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -8,10 +7,11 @@ import org.apache.log4j.Logger;
 
 import com.bj.supermarket.common.AppConstants;
 import com.bj.supermarket.exception.InvalidPurchaseException;
+import com.bj.supermarket.manager.CartModelManager;
+import com.bj.supermarket.model.Cart;
 import com.bj.supermarket.model.OfferProduct;
 import com.bj.supermarket.model.Product;
 import com.bj.supermarket.processor.ICartProcessor;
-import com.bj.supermarket.util.AppUtil;
 
 /**
  * This class process product scan
@@ -22,16 +22,12 @@ public class CartProcessorImpl implements ICartProcessor {
 
 	final static Logger logger = Logger.getLogger(CartProcessorImpl.class);
 	
-	private double checkOutAmount = 0.0;
-	private static CartProcessorImpl myCartProcessor = null;
-	private static Map<String, Integer> cartDetails = new HashMap<>();
-	
+	private static ICartProcessor myCartProcessor = null;
 
 	private CartProcessorImpl() {
-		// TODO Auto-generated constructor stub
 	}
 
-	public static CartProcessorImpl getInstance() {
+	public static ICartProcessor getInstance() {
 		if (myCartProcessor == null) {
 			synchronized (CartProcessorImpl.class) {
 				// Double check?
@@ -42,86 +38,85 @@ public class CartProcessorImpl implements ICartProcessor {
 		return myCartProcessor;
 	}
 
+	
+	/**
+	 * Method to scan new product
+	 */
 	@Override
-	public boolean scanProduct(String aItemName) throws InvalidPurchaseException {
+	public boolean scanProduct(CartModelManager aManager,String aItemName) throws InvalidPurchaseException {
 		logger.info(AppConstants.METHOD_ENTRY_MESSAGE + "scanProduct [" + aItemName + "]");
 		boolean productScanned = false;		
 		try {
-			if (null != aItemName) {
+			if (null != aItemName && null != aManager ) {
+				if(aManager.getCart() == null) {
+					aManager.setCart(new Cart());
+				}
 				String myItemId = aItemName.trim().toUpperCase();
 				// Check product is available in store
 				if (PricingProcessorImpl.getInstance().getProductDetails().containsKey(myItemId)) {
+					Map<String, Integer> myProductPurchaseMap =aManager.getCart().getCheckoutProducts();
 					// populate Map with item counts.
-					if (cartDetails.containsKey(myItemId)) {
-						cartDetails.put(myItemId, cartDetails.get(myItemId) + 1);
+					if (myProductPurchaseMap.containsKey(myItemId)) {
+						myProductPurchaseMap.put(myItemId, myProductPurchaseMap.get(myItemId) + 1);
 					} else {
-						cartDetails.put(myItemId, 1);
+						myProductPurchaseMap.put(myItemId, 1);
 					}						
 					productScanned = true;
 				} else {
 					throw new InvalidPurchaseException(myItemId);
 				}
-			}
-			
+			}		
 			
 		} catch (InvalidPurchaseException aException) {
 			// Not throwing here because we want to continue the loop to accept the correct
 			// input
-			System.out.println(aException.getMessage());
+			logger.error(aException.getMessage());
 		}
-		calculatePaymentAmount();
+		calculatePaymentAmount(aManager);
+		//String myPaymentAmount = ICartProcessor.getTotalPaymentAmount(aManager);
+		//System.out.println("Bill Amount :" + myPaymentAmount + " [ enter DONE to complete scanning! ] ");
 		logger.info(AppConstants.METHOD_EXIT_MESSAGE + "scanProduct [" + aItemName+ "]");
 		return productScanned;
 	}
 	
 	
+
 	/**
 	 * Method to recalculate the amount based on all products
 	 * @return
 	 */
-	private double calculatePaymentAmount() {
+	private double calculatePaymentAmount(CartModelManager aManager) {
 		logger.info(AppConstants.METHOD_ENTRY_MESSAGE + "calculatePaymentAmount");
-		checkOutAmount = 0.0;
-		Set<String> myCartSet = cartDetails.keySet();
-		for (String myPoductID : myCartSet) {			
-			Integer myProductCounts = cartDetails.get(myPoductID);
-			OfferProduct myOfferProduct = PricingProcessorImpl.getInstance().getOfferProductDetails().get(myPoductID);
-			Product myProduct = PricingProcessorImpl.getInstance().getProductDetails().get(myPoductID);
-			int myMinimumOfferCount = 0;
-			if (null != myOfferProduct) {
-				myMinimumOfferCount = myOfferProduct.getMinimumOfferUnits();
-				if (myProductCounts >= myMinimumOfferCount) {
-					checkOutAmount += (myProductCounts / myMinimumOfferCount) * myOfferProduct.getProductPrice()
-							+ (myProductCounts % myMinimumOfferCount) * myProduct.getProductPrice();
+		double checkOutAmount = 0.0;
+		if(null != aManager && null != aManager.getCart()) {		
+			Map<String, Integer> myProductPurchaseMap =aManager.getCart().getCheckoutProducts();
+			Set<String> myCartSet = myProductPurchaseMap.keySet();
+			for (String myPoductID : myCartSet) {			
+				Integer myProductCounts = myProductPurchaseMap.get(myPoductID);				
+				Product myProduct = PricingProcessorImpl.getInstance().getProductDetails().get(myPoductID);
+				OfferProduct myOfferProduct = myProduct.getOfferProduct();
+				int myMinimumOfferCount = 0;
+				if (null != myOfferProduct) {
+					myMinimumOfferCount = myOfferProduct.getMinimumOfferUnits();
+					if (myProductCounts >= myMinimumOfferCount) {
+						checkOutAmount += (myProductCounts / myMinimumOfferCount) * myOfferProduct.getOfferPrice()
+								+ (myProductCounts % myMinimumOfferCount) * myProduct.getProductPrice();
+					} else {
+						checkOutAmount += myProductCounts * myProduct.getProductPrice();
+					}
+
 				} else {
 					checkOutAmount += myProductCounts * myProduct.getProductPrice();
-				}
-
-			} else {
-				checkOutAmount += myProductCounts * myProduct.getProductPrice();
+				}	
+				logger.debug("Checkout Amount after scanning product [" + myPoductID + "] is:"+checkOutAmount);
 			}
-			logger.debug("Checkout Amount " + checkOutAmount);
+			//set checkout Amount
+			aManager.getCart().setPaymentAmount(checkOutAmount);
+			logger.info("Checkout Amount " + checkOutAmount);
 		}
 		
 		logger.info(AppConstants.METHOD_EXIT_MESSAGE + "calculatePaymentAmount");
 		return checkOutAmount;
 	}
-
-
-	public Map<String, Integer> getCartDetails() {
-
-		return cartDetails;
-	}
-
-	/**
-	 * @return the checkOutAmount
-	 */
-
-	public String getCheckOutDisplayAmount() {
-
-		return AppUtil.getCurrencySymbol() + (checkOutAmount / 100);
-	}
-
-	
 
 }
