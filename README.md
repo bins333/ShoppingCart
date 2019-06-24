@@ -30,12 +30,14 @@ Navigate to target folder and run "java -jar supermarket-0.0.1-SNAPSHOT-jar-with
 </ul>
 
 # OR
+
 <ul>
 <li>
-Download the code, import to eclise.
+Download the code, import to eclipse as maven project.
 </li>
 <li>
 Open com.bj.supermarket.App.java and run as java application.
 </li>
 
 </ul>
+
