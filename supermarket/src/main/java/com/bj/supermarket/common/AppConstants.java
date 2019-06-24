@@ -32,5 +32,8 @@ public class AppConstants {
 	public static final String MENU_ONE = "1. CONFIGURE PRICE DETAILS";
 	public static final String MENU_TWO = "2. PURCHASE";
 	public static final String MENU_THREE = "3. EXIT";
+	public static final String CASE_ONE = "1";
+	public static final String CASE_TWO = "2";
+	public static final String CASE_THREE = "3";
 
 }

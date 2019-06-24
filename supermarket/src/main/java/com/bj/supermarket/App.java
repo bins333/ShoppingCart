@@ -78,14 +78,14 @@ public class App {
 			}
 			logger.info("Key enterd is " + key);
 			switch (key) {
-			case "1":
+			case CASE_ONE:
 				logger.info("<<Invoking price rule module>>");
 				displayPricingRuleInfoMessage();
 				processPricingRule(aScanner);
 				logger.info("<<Price rule module execution completed>>");
 				break;
 
-			case "2":
+			case CASE_TWO:
 				logger.info("<<Invoking checkout rule module>>");
 				displayProductScanInfoMessage();
 				boolean success = processProductScan(aScanner);
@@ -98,7 +98,7 @@ public class App {
 				logger.info("<<Checkout module execution completed>>");
 				break;
 
-			case "3":
+			case CASE_THREE:
 				logger.info("<<Exiting application>>");
 				System.out.println(APPLICATION_EXIT_MESSAGE);				
 				isAppRunning = false;
