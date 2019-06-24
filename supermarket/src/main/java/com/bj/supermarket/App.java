@@ -15,7 +15,7 @@ import com.bj.supermarket.processor.IPricingProcessor;
 import com.bj.supermarket.processor.impl.CartProcessorImpl;
 import com.bj.supermarket.processor.impl.PricingProcessorImpl;
 
-/**
+/*
  * Implement the code for a checkout system that handles pricing schemes such as
  * “apples cost 50 pence, three apples cost £1.30.” Implement the code for a
  * supermarket checkout that calculates the total price of a number of items. In
@@ -42,18 +42,75 @@ public class App {
 	public static void main(String[] args) {
 		logger.info("Application execution started");
 		// try- resource since we need scanner object to be available for product scan
-		
+
 		try (Scanner myScanner = new Scanner(System.in)) {
+
+			/*
+			 * displayPricingRuleInfoMessage(); processPricingRule(myScanner);
+			 * displayProductScanInfoMessage(); processProductScan(myScanner);
+			 */
 			
-			displayPricingRuleInfoMessage();
-			processPricingRule(myScanner);
-			displayProductScanInfoMessage();
-			processProductScan(myScanner);			
-			// myScanner.close();
-		} catch (InvalidPurchaseException | InvalidProductDetailsException e) {
+			// invoking menu logic
+			processAppForExplicitExit(myScanner);
+
+		} catch (InvalidPurchaseException | InvalidProductDetailsException | InterruptedException e) {
 			logger.error(e);
 		}
 		logger.info("Application execution end");
+	}
+
+	
+	/**
+	 * Building menu
+	 * @param aScanner
+	 * @throws InvalidProductDetailsException
+	 * @throws InvalidPurchaseException
+	 * @throws InterruptedException
+	 */
+	private static void processAppForExplicitExit(Scanner aScanner)
+			throws InvalidProductDetailsException, InvalidPurchaseException, InterruptedException {
+		boolean isAppRunning = true;
+		while (isAppRunning) {
+			displayOptions();
+			String key = "";
+			if (aScanner.hasNextLine()) {
+				key = aScanner.nextLine();
+			}
+			logger.info("Key enterd is " + key);
+			switch (key) {
+			case "1":
+				logger.info("<<Invoking price rule module>>");
+				displayPricingRuleInfoMessage();
+				processPricingRule(aScanner);
+				logger.info("<<Price rule module execution completed>>");
+				break;
+
+			case "2":
+				logger.info("<<Invoking checkout rule module>>");
+				displayProductScanInfoMessage();
+				boolean success = processProductScan(aScanner);
+				if(success) {
+				System.out.println(PAYMENT_PROGRESS_MESSAGE);
+				Thread.sleep(2000);
+				System.out.println(PAYMENT_COMPLETED_MESSAGE);
+				Thread.sleep(2000);
+				}
+				logger.info("<<Checkout module execution completed>>");
+				break;
+
+			case "3":
+				logger.info("<<Exiting application>>");
+				System.out.println(APPLICATION_EXIT_MESSAGE);				
+				isAppRunning = false;
+				break;
+
+			default:
+				System.out.println(INVALID_SELECTION_MESSAGE);
+				logger.info("<<Executing default option>>");
+				continue;
+			}
+		}
+
 	}
 
 	/**
@@ -87,26 +144,28 @@ public class App {
 	 * @param aScanner
 	 * @throws InvalidPurchaseException
 	 */
-	private static CartModelManager processProductScan(Scanner aScanner) throws InvalidPurchaseException {
+	private static boolean processProductScan(Scanner aScanner) throws InvalidPurchaseException {
 		// myScanner = new Scanner(System.in);
 		ICartProcessor myProcessor = CartProcessorImpl.getInstance();
 		CartModelManager myCartModelManager = new CartModelManager();
+		boolean isScanSucess  = false;
 		while (true) {
-			String myProduct = aScanner.next();
-			if (myProduct.equalsIgnoreCase(DONE)) {
+			String myProduct = aScanner.nextLine();
+			if (myProduct.equalsIgnoreCase(PAY)) {
 				break;
 			} else {
-				boolean isScanSucess = myProcessor.scanProduct(myCartModelManager, myProduct);	
-				if(!isScanSucess) {
-					System.out.println(AppConstants.PRODUCT_NOT_AVAILABLE_START_MESSAGE + myProduct + AppConstants.PRODUCT_NOT_AVAILABLE_END_MESSAGE);
+				isScanSucess = myProcessor.scanProduct(myCartModelManager, myProduct);
+				if (!isScanSucess) {
+					System.out.println(AppConstants.PRODUCT_NOT_AVAILABLE_START_MESSAGE + myProduct
+							+ AppConstants.PRODUCT_NOT_AVAILABLE_END_MESSAGE);
 				}
 				String myPaymentAmount = ICartProcessor.getTotalPaymentAmount(myCartModelManager);
 				System.out.println(RUNNING_AMOUNT_DESC + myPaymentAmount + PRODUCT_SCAN_MESSAGE_PCOMPLETE);
 			}
-			
-		}		
+
+		}
 		System.out.println(TOTAL_AMOUNT_DESC + ICartProcessor.getTotalPaymentAmount(myCartModelManager));
-		return myCartModelManager;
+		return isScanSucess;
 	}
 
 	/**
@@ -114,13 +173,11 @@ public class App {
 	 */
 	private static void displayPricingRuleInfoMessage() {
 		StringBuilder myStringBuilder = new StringBuilder();
-		myStringBuilder.append("Enter Pricing rule for product in below format")
-					.append(System.lineSeparator()).append("<Product Name> | <unit price> | <X for Y> where X stands for number of minimum units and Y stands for offer price.")
-					.append(System.lineSeparator()).append("Ex: A | 50 | 3 for 130")
-					.append(System.lineSeparator())
-					.append("Or A | 50 [In case no offer for that product]")
-					.append(System.lineSeparator())
-					.append("Once all rules are added, type DONE and press enter!");
+		myStringBuilder.append("Enter Pricing rule for product in below format").append(System.lineSeparator()).append(
+				"<Product Name> | <unit price> | <X for Y> where X stands for number of minimum units and Y stands for offer price.")
+				.append(System.lineSeparator()).append("Ex: A | 50 | 3 for 130").append(System.lineSeparator())
+				.append("Or A | 50 [In case no offer for that product]").append(System.lineSeparator())
+				.append("Once all rules are added, type DONE and press enter!");
 		System.out.println(myStringBuilder.toString());
 	}
 
@@ -131,6 +188,15 @@ public class App {
 		System.out.println(SCAN_INFO_MESSAGE_MAIN);
 	}
 
-	
+	/**
+	 * Menu details
+	 */
+	private static void displayOptions() {
+		StringBuilder myStringBuilder = new StringBuilder();
+		myStringBuilder.append(MENU_HEADER).append(System.lineSeparator())
+				.append(MENU_ONE).append(System.lineSeparator()).append(MENU_TWO)
+				.append(System.lineSeparator()).append(MENU_THREE).append(System.lineSeparator());
+		System.out.println(myStringBuilder.toString());
+	}
 
 }
