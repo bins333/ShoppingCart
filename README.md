@@ -15,4 +15,27 @@ Our checkout accepts items in any order, so that if we scan a B, an A, and anoth
 
 The solution should allow for items to input at the command line, and allow for a final total to be calculated and for a running total after each item is ‘scanned’.
 
-Java, Maven
+Prerequisites : Java 8  <br/>
+IDE: Eclipse <br/>
+Build tool: Maven <br/>
+
+<ul>
+<li>
+Download the code, and run "mvn clean install".
+</li>
+<li>
+Navigate to target folder and run "java -jar supermarket-0.0.1-SNAPSHOT-jar-with-dependencies.jar" .
+</li>
+
+</ul>
+
+# OR
+<ul>
+<li>
+Download the code, import to eclise.
+</li>
+<li>
+Open com.bj.supermarket.App.java and run as java application.
+</li>
+
+</ul>
